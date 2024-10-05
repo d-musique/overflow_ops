@@ -1,0 +1,71 @@
+---
+name: C/C++ CI
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - name: Ubuntu
+            os: ubuntu-latest
+          - name: macOS
+            os: macos-latest
+    runs-on: ${{matrix.os}}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure and Build Project
+        uses: threeal/cmake-action@v2
+        with:
+          options: |
+            OVERFLOW_OPS_TESTS=ON
+      - name: Test Project
+        uses: threeal/ctest-action@v1
+
+  build-windows-msvc:
+    strategy:
+      matrix:
+        include:
+          - name: Windows (prebuilts)
+            use-prebuilts: "ON"
+          - name: Windows (no prebuilts)
+            use-prebuilts: "OFF"
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure and Build Project (x86)
+        uses: threeal/cmake-action@v2
+        with:
+          build-dir: build-x86
+          args: |
+            -A
+            Win32
+          options: |
+            OVERFLOW_OPS_TESTS=ON
+            OVERFLOW_OPS_USE_PREBUILTS=${{matrix.use-prebuilts}}
+      - name: Test Project (x86)
+        uses: threeal/ctest-action@v1
+        with:
+          test-dir: build-x86
+      - name: Configure and Build Project (x64)
+        uses: threeal/cmake-action@v2
+        with:
+          build-dir: build-x64
+          args: |
+            -A
+            x64
+          options: |
+            OVERFLOW_OPS_TESTS=ON
+            OVERFLOW_OPS_USE_PREBUILTS=${{matrix.use-prebuilts}}
+      - name: Test Project (x64)
+        uses: threeal/ctest-action@v1
+        with:
+          test-dir: build-x64
