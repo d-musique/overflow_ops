@@ -70,6 +70,20 @@ bool size_add_overflow(size_t a, size_t b, size_t *r) IOP_NOEXCEPT;
 bool size_sub_overflow(size_t a, size_t b, size_t *r) IOP_NOEXCEPT;
 bool size_mul_overflow(size_t a, size_t b, size_t *r) IOP_NOEXCEPT;
 
+#if !defined(__cplusplus)
+#define add_overflow(a, b, r) IOP__XXX_OVERFLOW(add, +, a, b, r)
+#define sub_overflow(a, b, r) IOP__XXX_OVERFLOW(sub, -, a, b, r)
+#define mul_overflow(a, b, r) IOP__XXX_OVERFLOW(mul, *, a, b, r)
+#else
+} // extern "C"
+template <class T> bool add_overflow(T a, T b, T *r) IOP_NOEXCEPT;
+template <class T> bool sub_overflow(T a, T b, T *r) IOP_NOEXCEPT;
+template <class T> bool mul_overflow(T a, T b, T *r) IOP_NOEXCEPT;
+extern "C" {
+#endif
+
+//------------------------------------------------------------------------------
+
 #define IOP_CONCAT2(a, b) IOP_CONCAT_(a, b)
 #define IOP_CONCAT3(a, b, c) IOP_CONCAT2(a, IOP_CONCAT2(b, c))
 #define IOP_CONCAT4(a, b, c, d) IOP_CONCAT2(a, IOP_CONCAT3(b, c, d))
@@ -93,6 +107,35 @@ bool size_mul_overflow(size_t a, size_t b, size_t *r) IOP_NOEXCEPT;
 #define IOP_STATIC_ASSERT(a, b)
 #endif
 #endif
+
+//------------------------------------------------------------------------------
+
+#define IOP__XXX_OVERFLOW(op, o, a, b, r) (_Generic((a) o (b), \
+   int: IOP_CONCAT4(int, _, op, _overflow), \
+   long: IOP_CONCAT4(long, _, op, _overflow), \
+   long long: IOP_CONCAT4(llong, _, op, _overflow), \
+   unsigned int: IOP_CONCAT4(uint, _, op, _overflow), \
+   unsigned long: IOP_CONCAT4(ulong, _, op, _overflow), \
+   unsigned long long: IOP_CONCAT4(ullong, _, op, _overflow)) \
+   ((a), (b), (r)))
+
+#define IOP__XXX_OVERFLOW_TEMPLATE_SPECIALIZATION(op) \
+   template <> IOP_INLINE bool IOP_CONCAT2(op, _overflow)(int a, int b, int *r) IOP_NOEXCEPT { return IOP_CONCAT3(int_, op, _overflow)(a, b, r); } \
+   template <> IOP_INLINE bool IOP_CONCAT2(op, _overflow)(long a, long b, long *r) IOP_NOEXCEPT { return IOP_CONCAT3(long_, op, _overflow)(a, b, r); } \
+   template <> IOP_INLINE bool IOP_CONCAT2(op, _overflow)(long long a, long long b, long long *r) IOP_NOEXCEPT { return IOP_CONCAT3(llong_, op, _overflow)(a, b, r); } \
+   template <> IOP_INLINE bool IOP_CONCAT2(op, _overflow)(unsigned int a, unsigned int b, unsigned int *r) IOP_NOEXCEPT { return IOP_CONCAT3(uint_, op, _overflow)(a, b, r); } \
+   template <> IOP_INLINE bool IOP_CONCAT2(op, _overflow)(unsigned long a, unsigned long b, unsigned long *r) IOP_NOEXCEPT { return IOP_CONCAT3(ulong_, op, _overflow)(a, b, r); } \
+   template <> IOP_INLINE bool IOP_CONCAT2(op, _overflow)(unsigned long long a, unsigned long long b, unsigned long long *r) IOP_NOEXCEPT { return IOP_CONCAT3(ullong_, op, _overflow)(a, b, r); }
+
+#if defined(__cplusplus)
+} // extern "C"
+IOP__XXX_OVERFLOW_TEMPLATE_SPECIALIZATION(add)
+IOP__XXX_OVERFLOW_TEMPLATE_SPECIALIZATION(sub)
+IOP__XXX_OVERFLOW_TEMPLATE_SPECIALIZATION(mul)
+extern "C" {
+#endif
+
+//------------------------------------------------------------------------------
 
 #if !defined(IOP_COMPILED_SEPARATE)
 #if defined(_MSC_VER)
